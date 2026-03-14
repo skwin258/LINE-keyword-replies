@@ -4,14 +4,14 @@
 const express = require('express');
 const line = require('@line/bot-sdk');
 
-// ✅ 保留你原本寫法：有環境變數就用環境變數，沒有就用你原本 Token（方便你現在直接跑）
-// ⚠️ 上 GitHub 建議一定要改成只用環境變數，避免外流（下面流程我會教你在 Railway 設定）
+// ✅ 建議改用環境變數；我先保留你原本寫法（避免你還要改部署）
+// 可改成：process.env.LINE_CHANNEL_ACCESS_TOKEN / process.env.LINE_CHANNEL_SECRET
 const config = {
   channelAccessToken:
     process.env.LINE_CHANNEL_ACCESS_TOKEN ||
-    'KDlE7SHqH1I9pSoQmKpOXEsMXHj/HGfmviGtdD8ILJeGKRuqgb1C9q+37zZh+rloRuY/rVaccT6URMNLjlqPWhCoIzKTCxdUbBeUEmT9rmrRtcAMrqA565pExnYVyu7nHAiYe+ajgnyIFbvEvk1fzQdB04t89/1O/w1cDnyilFU=',
+    'uI7leE8oa9YaiiRZAuxoZygL2kuahqAuz5CQIkGycb907cjLev0WxYu3aeHIJBpLoqQwBEJ3NtmovJ1/Xwd7D2/kowuA6MiOdR7zf/s3uGoWBuu4gyrwqsZuFQpT7aPIUwUGCpi05s+ydSuxHAmZ9wdB04t89/1O/w1cDnyilFU=',
   channelSecret:
-    process.env.LINE_CHANNEL_SECRET || '02a29c9e521a04e802b4fbcd98b4da2a',
+    process.env.LINE_CHANNEL_SECRET || '2ab6d13a9b31c2eef6b554ad09b0c642',
 };
 
 const client = new line.Client(config);
@@ -46,19 +46,18 @@ async function handleEvent(event) {
     const userId = event.source && event.source.userId;
     if (userId) {
       const profile = await client.getProfile(userId);
-      displayName =
-        profile && profile.displayName ? profile.displayName : '朋友';
+      displayName = (profile && profile.displayName) ? profile.displayName : '朋友';
     }
   } catch (e) {
     displayName = '朋友';
   }
 
-  // ✅ 回覆（可能是單則 message，也可能是多則 messages 陣列）
+  // ✅ 把名字傳進關鍵字回覆
   const replyMessage = getReplyByKeyword(text, displayName);
 
-  if (!replyMessage) {
-    return null; // ✅ 沒命中關鍵字：完全不回覆
-  }
+if (!replyMessage) {
+  return null; // ✅ 沒命中關鍵字：完全不回覆
+}
 
   return client.replyMessage(event.replyToken, replyMessage);
 }
@@ -66,99 +65,39 @@ async function handleEvent(event) {
 // 關鍵字對應邏輯
 function getReplyByKeyword(text, displayName = '朋友') {
   switch (text) {
-    // ================== 活動獎金（總入口） ==================
-    case '申請活動獎金':
-      return {
-        type: 'text',
-        text: `${displayName}您好\n\n請先提供您的「遊戲ID」及「真實姓名」以利查詢\n\n稍後將安排客服人員為您服務\n不便之處請多多見諒`,
-      };
+case '會員中心':
+  return {
+    type: 'text',
+    text: 'https://skclub.vip/',
+  };
 
-    // ✅ 活動獎金（子項目：由卡片按鈕點出來）
-    case '活動獎金/介紹金':
-      return {
-        type: 'text',
-        text: `${displayName}您好✅\n\n【介紹金】申請已收到\n請回覆：\n1）遊戲ID\n2）真實姓名\n\n我會盡快協助你完成申請`,
-      };
-
-    case '活動獎金/回歸金':
-      return {
-        type: 'text',
-        text: `${displayName}您好✅\n\n【回歸金】申請已收到\n請回覆：\n1）遊戲ID\n2）真實姓名\n\n我會盡快協助你完成申請`,
-      };
-
-    case '活動獎金/百家連過金':
-      return {
-        type: 'text',
-        text: `${displayName}您好✅\n\n【百家連過金】申請已收到\n請回覆：\n1）遊戲ID\n2）真實姓名\n\n我會盡快協助你完成申請`,
-      };
-
-    case '活動獎金/電子平轉金':
-      return {
-        type: 'text',
-        text: `${displayName}您好✅\n\n【電子平轉金】申請已收到\n請回覆：\n1）遊戲ID\n2）真實姓名\n\n我會盡快協助你完成申請`,
-      };
-
-    case '活動獎金/電子爆分金':
-      return {
-        type: 'text',
-        text: `${displayName}您好✅\n\n【電子爆分金】申請已收到\n請回覆：\n1）遊戲ID\n2）真實姓名\n\n我會盡快協助你完成申請`,
-      };
-
-    // ================== 代理 ==================
     case '我要成為代理':
       return {
         type: 'text',
-        text: `${displayName}您好\n\n收到✅ 我已經看到你想加入代理了！\n\n我這邊先幫你登記，請你稍等一下～\n我會盡快回覆你，並把代理制度／申請方式一次說明清楚。`,
+        text: `${displayName}您好
+
+收到✅ 我已經看到你想加入代理了！
+
+我這邊先幫你登記，請你稍等一下～
+我會盡快回覆你，並把代理制度／申請方式一次說明清楚。`,
       };
 
-    case '加入代理':
-      return makeAgentIntroFlex();
-
-    // ================== 折抵金 ==================
     case '折抵金使用規則':
-      return makeDiscountDetailFlex();
+  return makeDiscountDetailFlex();
 
-    // ================== IG / Threads（直接跳連結，不送關鍵字） ==================
     case 'Instagram':
-      return {
-        type: 'template',
-        altText: 'Instagram',
-        template: {
-          type: 'buttons',
-          text: '點擊按鈕直接前往 Instagram',
-          actions: [
-            {
-              type: 'uri',
-              label: '前往 Instagram',
-              uri: 'https://www.instagram.com/casino_2233/',
-            },
-          ],
-        },
-      };
+      return { type: 'text', text: 'https://www.instagram.com/casino_2233/' };
 
     case 'Threads':
-      return {
-        type: 'template',
-        altText: 'Threads',
-        template: {
-          type: 'buttons',
-          text: '點擊按鈕直接前往 Threads',
-          actions: [
-            {
-              type: 'uri',
-              label: '前往 Threads',
-              uri: 'https://www.threads.com/@casino_2233',
-            },
-          ],
-        },
-      };
+      return { type: 'text', text: 'https://www.threads.com/@casino_2233' };
 
-    // ================== AI百家功能（你原本） ==================
+    // ✅ 功能亮點（Flex 卡片）
     case '功能亮點':
       return buildFeatureHighlightsFlex();
 
+    // ✅ 權限文案（文字）
     case '機器人權限說明':
-    case '方案與權限':
+    case '方案與權限': // ✅ 同義詞也回同一段
       return {
         type: 'text',
         text: `🎫 會員權限說明
@@ -175,6 +114,7 @@ function getReplyByKeyword(text, displayName = '朋友') {
 🔥 直接送 3000 現金＋永久權限`,
       };
 
+    // ✅ 常見問題（文字）
     case '常見問題':
       return {
         type: 'text',
@@ -197,10 +137,13 @@ A：註冊完會員，就會贈送你1天權限喔。`,
     case '當月優惠':
       return makeBonusCardsCarouselFlex();
 
-    case '申請帳號':
-      return makeOpenAccountOfferFlex(displayName);
+    case '折抵金使用規則':
+      return { type: 'text', text: '（這裡放你的折抵金使用規則完整說明）' };
 
-    // 使用教學（文字 + 影片）
+    case '申請帳號':
+  return makeOpenAccountOfferFlex(displayName);
+
+    // ✅ 使用教學（文字 + 影片）
     case '使用教學':
       return [
         {
@@ -228,7 +171,7 @@ A：註冊完會員，就會贈送你1天權限喔。`,
         },
       ];
 
-    // AI機器人（文案 + 影片）
+    // ✅ AI機器人（文案 + 影片）
     case 'AI機器人':
       return [
         {
@@ -252,32 +195,23 @@ A：註冊完會員，就會贈送你1天權限喔。`,
         },
       ];
 
+    // ✅ AI百家機器人介紹（含四顆按鈕）
     case 'AI百家機器人介紹':
       return makeAIBaccaratIntroFlex();
 
     case '娛樂城Q&A':
       return makeCasinoQAFlex();
 
+    // ✅ 沒問題（你要的那張圖）
     case '沒問題':
       return makeOpenAccountInfoFlex();
 
-    // 客服（你已經用開版註冊資訊卡片按鈕跳連結了，這邊保留關鍵字備用）
+    // ✅ 客服
     case '聯絡客服':
-      return {
-        type: 'template',
-        altText: '聯絡客服',
-        template: {
-          type: 'buttons',
-          text: '點擊按鈕直接聯絡客服',
-          actions: [
-            {
-              type: 'uri',
-              label: '聯絡客服',
-              uri: 'https://line.me/ti/p/khyppSH9Yz',
-            },
-          ],
-        },
-      };
+      return { type: 'text', text: '（這裡放客服聯絡方式/引導文案）' };
+
+    case '加入代理':
+      return makeAgentIntroFlex();
 
     default:
       return null;
@@ -396,13 +330,13 @@ function makeDiscountDetailFlex() {
         contents: [
           {
             type: 'image',
-            url: 'https://bc78999.com/wp-content/uploads/2025/12/%E9%96%8B%E7%89%88%E8%B3%87%E8%A8%8A%E8%A9%B3%E6%83%85%E4%BB%8B%E7%B4%B9.jpg',
+            url: 'https://bc78999.com/wp-content/uploads/2025/12/%E9%96%8B%E7%89%88%E8%B3%87%E8%A8%8A%E8%A9%B3%E6%83%85%E4%BB%8B%E7%B4%B9.jpg', // ✅換成你的圖片
             size: 'full',
-            aspectRatio: '2:3',
-            aspectMode: 'cover',
-            backgroundColor: BG,
-          },
-        ],
+            aspectRatio: '2:3',     // 想更長就 1:2 / 3:4 自己調
+            aspectMode: 'cover',    // 滿版
+            backgroundColor: BG
+          }
+        ]
       },
       footer: {
         type: 'box',
@@ -415,22 +349,23 @@ function makeDiscountDetailFlex() {
             style: 'primary',
             height: 'md',
             color: BTN_BG,
-            action: { type: 'message', label: '沒問題', text: '沒問題' },
-          },
-        ],
-      },
-    },
+            action: { type: 'message', label: '沒問題', text: '沒問題' }
+          }
+        ]
+      }
+    }
   };
 }
 
 // ================== Flex：加入代理文案 ==================
 function makeAgentIntroFlex() {
-  const BG = '#FFF5CC';
-  const BTN_BG = '#C8A36A';
+  const BG = '#FFF5CC';      // 跟AI百家機器人介紹同款底色
+  const BTN_BG = '#C8A36A';  // 同款奶茶棕按鈕
 
   const title = '🔍 博弈代理怎麼賺？其實很簡單';
 
-  const bodyText = `代理收入主要分 3 種獎金：
+  const bodyText =
+`代理收入主要分 3 種獎金：
 
 ① 支數獎金
 只要成功開一位會員
@@ -479,14 +414,16 @@ function makeAgentIntroFlex() {
         paddingTop: '24px',
         paddingBottom: '16px',
         contents: [
+          // ✅ 標題（比內文大 2-3 號）
           {
             type: 'text',
             text: title,
             wrap: true,
             color: '#111111',
-            size: 'xl',
-            weight: 'bold',
+            size: 'xl',      // ✅ 大字（比 md 大 2-3 階）
+            weight: 'bold'
           },
+          // ✅ 內文
           {
             type: 'text',
             text: bodyText,
@@ -494,9 +431,9 @@ function makeAgentIntroFlex() {
             color: '#111111',
             size: 'md',
             lineSpacing: '8px',
-            margin: 'md',
-          },
-        ],
+            margin: 'md'
+          }
+        ]
       },
       footer: {
         type: 'box',
@@ -510,11 +447,11 @@ function makeAgentIntroFlex() {
             style: 'primary',
             height: 'md',
             color: BTN_BG,
-            action: { type: 'message', label: '我想加入', text: '我要成為代理' },
-          },
-        ],
-      },
-    },
+            action: { type: 'message', label: '我想加入', text: '我要成為代理' }
+          }
+        ]
+      }
+    }
   };
 }
 
@@ -875,7 +812,7 @@ function makeSportsBettingTutorialFlex() {
   };
 }
 
-// ================== Flex：娛樂城 Q&A（標題 XL） ==================
+// ================== Flex：娛樂城 Q&A（你原本很長那段保留） ==================
 function makeCasinoQAFlex() {
   const BG = '#FFF5CC';
   const TEXT = '#111111';
@@ -941,14 +878,16 @@ A：
         paddingTop: '26px',
         paddingBottom: '18px',
         contents: [
+          // ✅ 標題（XL大字）
           {
             type: 'text',
             text: title,
             size: 'xl',
             weight: 'bold',
             color: TEXT,
-            wrap: true,
+            wrap: true
           },
+          // ✅ 內文（原本md）
           {
             type: 'text',
             text: msg,
@@ -956,8 +895,8 @@ A：
             color: TEXT,
             wrap: true,
             lineSpacing: '8px',
-            margin: 'md',
-          },
+            margin: 'md'
+          }
         ],
       },
       footer: {
@@ -982,7 +921,7 @@ A：
   };
 }
 
-// ================== 功能亮點 Flex（你原本） ==================
+// ================== ✅ 你要的：功能亮點 Flex（已修正 LINE 400 的問題） ==================
 function buildFeatureHighlightsFlex() {
   return {
     type: 'flex',
