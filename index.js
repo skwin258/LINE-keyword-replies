@@ -31,6 +31,55 @@ app.post('/webhook', line.middleware(config), (req, res) => {
     });
 });
 
+// ================== Rich Menu 自動切換設定 ==================
+// 這 4 個 alias 必須跟 setup-richmenu.mjs 裡的一樣。
+const RICHMENU_ALIAS = {
+  service: 'menu-service',
+  member: 'menu-member',
+  tutorialSport: 'menu-tutorial-sport',
+  tutorialBaccarat: 'menu-tutorial-baccarat',
+};
+
+const richMenuAliasCache = new Map();
+
+async function getRichMenuIdByAlias(aliasId) {
+  if (richMenuAliasCache.has(aliasId)) {
+    return richMenuAliasCache.get(aliasId);
+  }
+
+  const aliasData = await client.getRichMenuAlias(aliasId);
+  const richMenuId = aliasData && aliasData.richMenuId;
+
+  if (!richMenuId) {
+    throw new Error(`找不到 Rich Menu Alias：${aliasId}`);
+  }
+
+  richMenuAliasCache.set(aliasId, richMenuId);
+  return richMenuId;
+}
+
+async function switchUserRichMenuByAlias(userId, aliasId) {
+  if (!userId || !aliasId) return;
+
+  const richMenuId = await getRichMenuIdByAlias(aliasId);
+  await client.linkRichMenuToUser(userId, richMenuId);
+}
+
+async function autoSwitchRichMenuByKeyword(text, userId) {
+  if (!userId) return;
+
+  // 圖三點百家樂：先回覆關鍵字內容，再自動切到圖四。
+  if (text === '百家樂新手教學') {
+    await switchUserRichMenuByAlias(userId, RICHMENU_ALIAS.tutorialBaccarat);
+    return;
+  }
+
+  // 圖四點運彩：先回覆關鍵字內容，再自動切回圖三。
+  if (text === '運彩新手教學') {
+    await switchUserRichMenuByAlias(userId, RICHMENU_ALIAS.tutorialSport);
+  }
+}
+
 // 處理每一個 event
 async function handleEvent(event) {
   // 只處理文字訊息
@@ -39,11 +88,11 @@ async function handleEvent(event) {
   }
 
   const text = (event.message.text || '').trim();
+  const userId = event.source && event.source.userId;
 
   // ✅ 1對1：抓暱稱 displayName
   let displayName = '朋友';
   try {
-    const userId = event.source && event.source.userId;
     if (userId) {
       const profile = await client.getProfile(userId);
       displayName = (profile && profile.displayName) ? profile.displayName : '朋友';
@@ -55,21 +104,34 @@ async function handleEvent(event) {
   // ✅ 把名字傳進關鍵字回覆
   const replyMessage = getReplyByKeyword(text, displayName);
 
-if (!replyMessage) {
-  return null; // ✅ 沒命中關鍵字：完全不回覆
-}
+  if (!replyMessage) {
+    return null; // ✅ 沒命中關鍵字：完全不回覆
+  }
 
-  return client.replyMessage(event.replyToken, replyMessage);
+  const result = await client.replyMessage(event.replyToken, replyMessage);
+
+  // ✅ 關鍵字回覆完成後，自動切換使用者的圖文選單。
+  await autoSwitchRichMenuByKeyword(text, userId).catch((err) => {
+    console.error('Rich Menu 自動切換失敗:', err?.originalError?.response?.data || err);
+  });
+
+  return result;
 }
 
 // 關鍵字對應邏輯
 function getReplyByKeyword(text, displayName = '朋友') {
   switch (text) {
-case '會員中心':
-  return {
-    type: 'text',
-    text: 'https://skclub.vip/',
-  };
+    case '申請活動獎金':
+      return {
+        type: 'text',
+        text: `${displayName}您好
+
+請先提供您的遊戲ID及真實姓名
+以利查詢
+
+稍後將安排客服人員為您服務
+不便之處請多多見諒`,
+      };
 
     case '我要成為代理':
       return {
@@ -134,6 +196,9 @@ A：註冊完會員，就會贈送你1天權限喔。`,
     case '運彩新手教學':
       return makeSportsBettingTutorialFlex();
 
+    case '百家樂新手教學':
+      return makeBaccaratTutorialFlex();
+
     case '當月優惠':
       return makeBonusCardsCarouselFlex();
 
@@ -171,7 +236,8 @@ A：註冊完會員，就會贈送你1天權限喔。`,
         },
       ];
 
-    // ✅ AI機器人（文案 + 影片）
+    // ✅ AI程式申請 / AI機器人（文案 + 影片）
+    case 'AI程式申請':
     case 'AI機器人':
       return [
         {
@@ -1046,3 +1112,70 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`LINE bot webhook listening on port ${port}`);
 });
+
+// ================== Flex：百家樂新手教學 ==================
+function makeBaccaratTutorialFlex() {
+  return {
+    type: 'flex',
+    altText: '百家樂新手教學',
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#120909',
+        paddingAll: '20px',
+        spacing: 'md',
+        contents: [
+          {
+            type: 'text',
+            text: '百家樂新手教學',
+            color: '#F8D77A',
+            size: 'xl',
+            weight: 'bold',
+            align: 'center',
+          },
+          {
+            type: 'separator',
+            color: '#A76B2D',
+          },
+          {
+            type: 'text',
+            text: '新手先記住三件事：不要追、不要凹、不要看到連莊連閒就無腦跟。百家樂最重要的是節奏控管與資金管理。',
+            color: '#FFFFFF',
+            size: 'sm',
+            wrap: true,
+            lineSpacing: '6px',
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#241111',
+            cornerRadius: '14px',
+            paddingAll: '14px',
+            spacing: 'sm',
+            contents: [
+              { type: 'text', text: '① 先觀察 3～5 局', color: '#F8D77A', size: 'sm', weight: 'bold', wrap: true },
+              { type: 'text', text: '看這桌是偏連、偏跳，還是雜亂無章。沒有方向時先不要急著進場。', color: '#EADCC8', size: 'xs', wrap: true },
+              { type: 'text', text: '② 單注固定，不要亂加倍', color: '#F8D77A', size: 'sm', weight: 'bold', wrap: true, margin: 'md' },
+              { type: 'text', text: '連輸時更要縮小注碼，不要用情緒下注。', color: '#EADCC8', size: 'xs', wrap: true },
+              { type: 'text', text: '③ 連輸 3 局就休息或換桌', color: '#F8D77A', size: 'sm', weight: 'bold', wrap: true, margin: 'md' },
+              { type: 'text', text: '新手最容易輸在硬追，懂得停手才是長期穩定的關鍵。', color: '#EADCC8', size: 'xs', wrap: true },
+            ],
+          },
+          {
+            type: 'text',
+            text: '想要更穩，可以搭配 AI 分析牌路，不要只靠感覺下注。',
+            color: '#FFFFFF',
+            size: 'sm',
+            wrap: true,
+            align: 'center',
+            margin: 'md',
+          },
+        ],
+      },
+    },
+  };
+}
+
