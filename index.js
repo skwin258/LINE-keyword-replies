@@ -685,11 +685,6 @@ function makeBonusCardsCarouselFlex() {
       label: '申請活動獎金',
     },
     {
-      img: 'https://bc78999.com/wp-content/uploads/2025/12/%E9%9B%BB%E5%AD%90%E5%B9%B3%E8%BD%89.jpg',
-      keyword: '活動獎金/電子平轉金',
-      label: '申請活動獎金',
-    },
-    {
       img: 'https://bc78999.com/wp-content/uploads/2025/12/%E9%9B%BB%E5%AD%90%E7%88%86%E5%88%86.jpg',
       keyword: '活動獎金/電子爆分金',
       label: '申請活動獎金',
