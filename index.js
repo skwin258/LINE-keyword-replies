@@ -670,12 +670,12 @@ function makeBonusCardsCarouselFlex() {
 
   const cards = [
     {
-      img: 'https://bc78999.com/wp-content/uploads/2025/12/%E4%BB%8B%E7%B4%B9.jpg',
+      img: 'https://bc78999.com/wp-content/uploads/2026/05/%E6%96%87%E6%A8%82-52.jpg',
       keyword: '活動獎金/介紹金',
       label: '申請活動獎金',
     },
     {
-      img: 'https://bc78999.com/wp-content/uploads/2025/12/%E5%9B%9E%E6%AD%B8.jpg',
+      img: 'https://bc78999.com/wp-content/uploads/2026/05/%E6%96%87%E6%A8%82-49-2.jpg',
       keyword: '活動獎金/回歸金',
       label: '申請活動獎金',
     },
